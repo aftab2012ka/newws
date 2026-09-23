@@ -1,0 +1,216 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // First Rule Gate: Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Reusable Primitive Definitions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    function hasUserRole(role) {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserRole(request.auth.uid) == role;
+    }
+
+    function isAdmin() {
+      return hasUserRole('Admin');
+    }
+
+    function isEditor() {
+      return hasUserRole('Editor');
+    }
+
+    function isReporter() {
+      return hasUserRole('Reporter');
+    }
+
+    // --- Entity Specific Validation Blueprints ---
+
+    function isValidCategory(data) {
+      return data.id is string && data.id.size() <= 100 &&
+             data.nameEN is string && data.nameEN.size() <= 100 &&
+             data.nameUR is string && data.nameUR.size() <= 100 &&
+             data.nameKN is string && data.nameKN.size() <= 100 &&
+             data.icon is string && data.icon.size() <= 100;
+    }
+
+    function isValidVideo(data) {
+      return data.id is string && data.id.size() <= 100 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 2000 &&
+             data.youtubeUrl is string && data.youtubeUrl.size() <= 500 &&
+             data.youtubeId is string && data.youtubeId.size() <= 100 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.date is string && data.date.size() <= 20;
+    }
+
+    function isValidComment(data) {
+      return data.id is string && data.id.size() <= 100 &&
+             data.articleId is string && data.articleId.size() <= 100 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.approved is bool;
+    }
+
+    function isValidSettings(data) {
+      return data.websiteName is string && data.websiteName.size() <= 150 &&
+             data.contactEmail is string && data.contactEmail.size() <= 150 &&
+             data.aboutText is string && data.aboutText.size() <= 4000 &&
+             data.googleAdSenseCode is string && data.googleAdSenseCode.size() <= 100 &&
+             data.googleAnalyticsId is string && data.googleAnalyticsId.size() <= 50 &&
+             data.isAdSenseActive is bool &&
+             data.isAnalyticsActive is bool &&
+             data.isPushNotificationSetup is bool;
+    }
+
+    function isValidArticle(data) {
+      return data.id is string && data.id.size() <= 100 &&
+             data.title is string && data.title.size() <= 300 &&
+             data.summary is string && data.summary.size() <= 1000 &&
+             data.content is string && data.content.size() <= 50000 &&
+             data.image is string && data.image.size() <= 1000 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.language is string && (data.language == 'en' || data.language == 'ur' || data.language == 'kn') &&
+             data.date is string && data.date.size() <= 20 &&
+             data.time is string && data.time.size() <= 20 &&
+             data.author is string && data.author.size() <= 100 &&
+             data.authorRole is string && (data.authorRole == 'Admin' || data.authorRole == 'Editor' || data.authorRole == 'Reporter' || data.authorRole == 'User') &&
+             data.views is number &&
+             data.likes is number &&
+             data.featured is bool &&
+             data.breaking is bool &&
+             data.status is string && (data.status == 'published' || data.status == 'draft' || data.status == 'scheduled');
+    }
+
+    function isValidUserAccount(data) {
+      return data.email is string && data.email.size() <= 150 &&
+             data.name is string && data.name.size() <= 150 &&
+             data.role is string && (data.role == 'Admin' || data.role == 'Editor' || data.role == 'Reporter' || data.role == 'User');
+    }
+
+    // --- Collection Routes & Protection Rules ---
+
+    // 1. Articles Collection
+    match /articles/{articleId} {
+      allow get: if existing().status == 'published' || 
+                   (isSignedIn() && (isAdmin() || isEditor() || (isReporter() && existing().author == request.auth.token.name)));
+      allow list: if existing().status == 'published' || 
+                    (isSignedIn() && (isAdmin() || isEditor() || isReporter()));
+      
+      allow create: if isSignedIn() && isVerified() && isValidArticle(incoming()) && (
+        isAdmin() || isEditor() || isReporter()
+      );
+      
+      allow update: if (
+        // Action A: Staff/Author edits
+        (isSignedIn() && isVerified() && isValidArticle(incoming()) && (
+          isAdmin() || isEditor() || 
+          (isReporter() && existing().author == request.auth.token.name && 
+           incoming().author == existing().author &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['title', 'summary', 'content', 'image', 'category', 'language', 'date', 'time', 'status', 'scheduledDate', 'views', 'likes', 'featured', 'breaking'])
+          )
+        )) ||
+        // Action B: Public readers incrementing Views or Likes (must check state increment is exactly +1)
+        (
+          isValidArticle(incoming()) && (
+            (incoming().diff(existing()).affectedKeys().hasOnly(['views']) && incoming().views == existing().views + 1) ||
+            (incoming().diff(existing()).affectedKeys().hasOnly(['likes']) && incoming().likes == existing().likes + 1)
+          )
+        )
+      );
+
+      allow delete: if isSignedIn() && (isAdmin() || isEditor());
+    }
+
+    // 2. Categories Collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isAdmin() && isValidCategory(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // 3. YouTube Videos Collection
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && (isAdmin() || isEditor()) && isValidVideo(incoming());
+      allow delete: if isSignedIn() && (isAdmin() || isEditor());
+    }
+
+    // 4. Comments Collection
+    match /comments/{commentId} {
+      allow list, get: if resource.data.approved == true || (isSignedIn() && (isAdmin() || isEditor() || isReporter()));
+      allow create: if isValidComment(incoming()) && incoming().approved == false; // initially must be unapproved
+      
+      allow update: if isSignedIn() && (
+        // Admins, Editors, or Reporters can moderate (approve/reject)
+        ((isAdmin() || isEditor() || isReporter()) && isValidComment(incoming()) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['approved']))
+      );
+      
+      allow delete: if isSignedIn() && (isAdmin() || isEditor());
+    }
+
+    // 5. Settings Collection
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isAdmin() && isValidSettings(incoming());
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // 6. User Accounts Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin() || isEditor());
+      allow list: if isSignedIn() && (isAdmin() || isEditor());
+      
+      allow create: if isSignedIn() && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          incoming().role == 'User' &&
+          incoming().email == request.auth.token.email &&
+          isValidUserAccount(incoming())
+        )
+      );
+      
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          request.auth.uid == userId &&
+          incoming().role == existing().role &&  // prevent self role elevation
+          incoming().email == existing().email &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['name']) &&
+          isValidUserAccount(incoming())
+        )
+      );
+
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+  }
+}

@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,655;0,800;1,400&family=Noto+Nastaliq+Urdu:wght@450;700&family=Noto+Sans+Kannada:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "system-ui", sans-serif;
+  --font-serif: "Playfair Display", "Noto Nastaliq Urdu", "Noto Sans Kannada", serif;
+}
+
+/* Custom CSS utilities for zero-layout horizontal category scrollbar hiding */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.dir-rtl {
+  direction: rtl;
+}
+.text-2xs {
+  font-size: 0.65rem;
+}
+.text-3xs {
+  font-size: 0.58rem;
+}
+.text-4xs {
+  font-size: 0.52rem;
+}
+.text-slate-150 {
+  color: #e2e8f0;
+}
+.bg-slate-850 {
+  background-color: #1e293b;
+}
+.bg-red-650 {
+  background-color: #dc2626;
+}
+.border-sky-150 {
+  border-color: #bae6fd;
+}
+.border-slate-750 {
+  border-color: #334155;
+}
+.border-slate-150 {
+  border-color: #f1f5f9;
+}
+.text-slate-155 {
+  color: #f1f5f9;
+}
+

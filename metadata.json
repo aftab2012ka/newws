@@ -1,0 +1,6 @@
+{
+  "name": "Waqt Ki Awaz",
+  "description": "A modern, clean, responsive, and professional multilingual News Portal Website with English, Urdu, and Kannada support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,125 @@
+{
+  "entities": {
+    "NewsArticle": {
+      "title": "NewsArticle",
+      "description": "An individual multilingual news article or story bulletin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string" },
+        "category": { "type": "string" },
+        "language": { "type": "string", "enum": ["en", "ur", "kn"] },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "author": { "type": "string" },
+        "authorRole": { "type": "string", "enum": ["Admin", "Editor", "Reporter", "User"] },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "featured": { "type": "boolean" },
+        "breaking": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["published", "draft", "scheduled"] },
+        "scheduledDate": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "category", "language", "date", "status"]
+    },
+    "NewsCategory": {
+      "title": "NewsCategory",
+      "description": "Multilingual system navigation category definitions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nameEN": { "type": "string" },
+        "nameUR": { "type": "string" },
+        "nameKN": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["id", "nameEN", "nameUR", "nameKN"]
+    },
+    "YouTubeVideo": {
+      "title": "YouTubeVideo",
+      "description": "A YouTube video-casted regional news stream dynamic locator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "title", "youtubeUrl", "youtubeId", "date"]
+    },
+    "ArticleComment": {
+      "title": "ArticleComment",
+      "description": "User feedback comments on a specific article, pending human moderation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "articleId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "approved": { "type": "boolean" }
+      },
+      "required": ["id", "articleId", "name", "email", "content", "date", "approved"]
+    },
+    "PortalSettings": {
+      "title": "PortalSettings",
+      "description": "Global custom administrator controls, email channels, and analytics configurations",
+      "type": "object",
+      "properties": {
+        "websiteName": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "aboutText": { "type": "string" },
+        "googleAdSenseCode": { "type": "string" },
+        "googleAnalyticsId": { "type": "string" },
+        "isAdSenseActive": { "type": "boolean" },
+        "isAnalyticsActive": { "type": "boolean" },
+        "isPushNotificationSetup": { "type": "boolean" }
+      },
+      "required": ["websiteName", "contactEmail", "aboutText"]
+    },
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Privileged credentials account configurations",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "Editor", "Reporter", "User"] }
+      },
+      "required": ["email", "name", "role"]
+    }
+  },
+  "firestore": {
+    "articles": {
+      "schema": "NewsArticle",
+      "description": "Multilingual news bulletins"
+    },
+    "categories": {
+      "schema": "NewsCategory",
+      "description": "System navigation structures"
+    },
+    "videos": {
+      "schema": "YouTubeVideo",
+      "description": "Published YouTube video updates"
+    },
+    "comments": {
+      "schema": "ArticleComment",
+      "description": "User generated feedback comments with review gates"
+    },
+    "settings": {
+      "schema": "PortalSettings",
+      "description": "Global portal configurations"
+    },
+    "users": {
+      "schema": "UserAccount",
+      "description": "Registered reporter, editor, and administrator profiles"
+    }
+  }
+}
